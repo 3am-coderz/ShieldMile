@@ -20,10 +20,7 @@ Coming Soon — will be updated before Phase 1 deadline
 
 ---
 
-## 🔗 Live Demo
-Coming Soon — will be updated before Phase 1 deadline
 
----
 
 ## 📋 Table of Contents
 - [The Problem](#the-problem)
