@@ -16,7 +16,7 @@ ShieldMile protects Chennai's Zepto & Blinkit delivery partners from income loss
 ---
 
 ## 🎥 Demo Video
-Coming Soon — will be updated before Phase 1 deadline
+[Click to watch demo](https://www.youtube.com/watch?v=0Q1m76gxMmA)
 
 ---
 
