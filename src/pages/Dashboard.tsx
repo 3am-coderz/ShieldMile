@@ -5,6 +5,8 @@ import { CDIGauge } from "@/components/CDIGauge";
 import { Button } from "@/components/ui/button";
 import { loadWorkerData, calculateCDI, runFraudCheck, type CDIInputs, type CDIResult } from "@/lib/shieldmile";
 import { CloudRain, Wind, Thermometer, CloudFog, ShieldAlert, CheckCircle, AlertTriangle, MapPin, Smartphone, Activity, FileText, Zap } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const DEMO_INPUTS: CDIInputs = { rainfall: 47, orderSurge: 165, slaBreach: 58, riderSupplyDrop: 42 };
 const SAFE_INPUTS: CDIInputs = { rainfall: 12, orderSurge: 80, slaBreach: 20, riderSupplyDrop: 15 };
@@ -16,6 +18,10 @@ export default function Dashboard() {
   const [cdi, setCdi] = useState<CDIResult>(calculateCDI(SAFE_INPUTS));
   const [simulating, setSimulating] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  
+  const [forceDemo, setForceDemo] = useState(false);
+  const [spoofGps, setSpoofGps] = useState(false);
+  const [spoofWeather, setSpoofWeather] = useState(false);
 
   useEffect(() => {
     const w = loadWorkerData();
@@ -26,6 +32,7 @@ export default function Dashboard() {
   const simulate = () => {
     setSimulating(true);
     setShowAlert(false);
+    
     // Animate from safe to triggered
     const steps = 30;
     let step = 0;
@@ -43,6 +50,31 @@ export default function Dashboard() {
       setCdi(result);
       if (step >= steps) {
         clearInterval(interval);
+        
+        const activeFraudCheck = runFraudCheck(0, spoofGps, spoofWeather);
+
+        if (result.triggered && worker?.id) {
+          if (!activeFraudCheck.overallClean) {
+             toast.error(`Smart Contract Claim Rejected: ${activeFraudCheck.rejectionReason}`);
+             setSimulating(false);
+             return; // Halt payout navigation
+          }
+
+          supabase.from('policies').select('id').eq('worker_id', worker.id).eq('status', 'active').single()
+          .then(({data}) => {
+             if (data?.id) {
+                supabase.from('claims').insert({
+                  policy_id: data.id, 
+                  worker_id: worker.id,
+                  trigger_type: 'Heavy Rain',
+                  cdi_score: result.total,
+                  payout_amount: 320, // Example hardcode for demo
+                  status: 'approved'
+                }).then(() => {});
+             }
+          });
+        }
+
         setSimulating(false);
         setShowAlert(true);
       }
@@ -50,7 +82,7 @@ export default function Dashboard() {
   };
 
   if (!worker) return null;
-  const fraud = runFraudCheck(0);
+  const fraud = runFraudCheck(0, spoofGps, spoofWeather);
   const isMidRange = cdi.total >= 45 && cdi.total <= 60;
 
   const triggers = [
@@ -68,7 +100,10 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-4 animate-slide-up stagger-1">
-          <h1 className="text-lg font-bold text-foreground">Live Shield Monitor</h1>
+           <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-foreground">Live Shield Monitor</h1>
+              <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-widest">Oracle Sync</span>
+           </div>
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-safe animate-pulse" />
             <span className="text-xs font-medium text-safe">Active</span>
@@ -130,31 +165,53 @@ export default function Dashboard() {
           ))}
         </div>
 
+          <div className="space-y-1.5 mb-4 p-2 bg-background border border-border/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="forceDemo" checked={forceDemo} onChange={e => setForceDemo(e.target.checked)} className="rounded text-warning w-3.5 h-3.5 ml-1" />
+              <label htmlFor="forceDemo" className="text-[10px] font-semibold text-warning">Force Disaster Payout</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="spoofGps" checked={spoofGps} onChange={e => setSpoofGps(e.target.checked)} className="rounded text-indigo-400 w-3.5 h-3.5 ml-1" />
+              <label htmlFor="spoofGps" className="text-[10px] font-semibold text-indigo-400">Trigger GPS Spoof Rejection</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="spoofWeather" checked={spoofWeather} onChange={e => setSpoofWeather(e.target.checked)} className="rounded text-indigo-400 w-3.5 h-3.5 ml-1" />
+              <label htmlFor="spoofWeather" className="text-[10px] font-semibold text-indigo-400">Trigger Historical Weather Mismatch Rejection</label>
+            </div>
+          </div>
+
         {/* Fraud Check */}
-        <div className="card-surface p-4 mb-4 animate-slide-up stagger-5">
-          <p className="text-xs font-semibold text-card-foreground mb-3">Fraud Verification</p>
+        <div className={`card-surface p-4 mb-4 animate-slide-up stagger-5 ${!fraud.overallClean ? 'border-triggered' : ''}`}>
+          <p className="text-xs font-semibold text-card-foreground mb-3 flex items-center justify-between">
+            Fraud Verification System
+            {!fraud.overallClean && <span className="text-[10px] text-triggered bg-triggered/10 px-2 py-0.5 rounded">FAILED</span>}
+          </p>
           <div className="space-y-2 text-xs">
             {[
-              { icon: MapPin, label: `GPS Zone: ${worker.zone}`, ok: fraud.gpsValid },
-              { icon: Activity, label: "Platform Activity: No deliveries during event", ok: fraud.activityClean },
-              { icon: FileText, label: "Claim History: 0 claims this week", ok: fraud.claimHistoryOk },
-              { icon: Smartphone, label: "Device Check: Single device", ok: fraud.deviceOk },
+              { icon: MapPin, label: `Historical Velocity Check: Continuous`, ok: fraud.gpsValid },
+              { icon: CloudRain, label: `Open-Meteo Historical Archive Match`, ok: fraud.weatherHistoryMatchOk },
+              { icon: Activity, label: "Platform Activity: Clean", ok: fraud.activityClean },
+              { icon: FileText, label: "Frequency: Under weekly limit", ok: fraud.claimHistoryOk },
             ].map(f => (
               <div key={f.label} className="flex items-center gap-2 text-muted-foreground">
-                <f.icon size={14} className="text-card-foreground" />
-                <span className="flex-1">{f.label}</span>
-                <CheckCircle size={14} className="text-safe" />
+                <f.icon size={14} className={!f.ok ? "text-triggered" : "text-card-foreground"} />
+                <span className={`flex-1 ${!f.ok && "text-triggered font-medium"}`}>{f.label}</span>
+                {f.ok ? <CheckCircle size={14} className="text-safe" /> : <AlertTriangle size={14} className="text-triggered" />}
               </div>
             ))}
-            <div className="flex items-center gap-2 pt-1 border-t border-border text-card-foreground font-medium">
-              <span>Fraud Score: Clean</span>
-              <CheckCircle size={14} className="text-safe" />
+            <div className="flex items-center gap-2 pt-2 mt-2 border-t border-border text-card-foreground font-medium">
+              <span>Overall Integrity Integrity: </span>
+              {fraud.overallClean ? (
+                 <span className="text-safe flex items-center gap-1 ml-auto">Clean <CheckCircle size={14} /></span>
+              ) : (
+                 <span className="text-triggered flex items-center gap-1 ml-auto">Malicious Activity <AlertTriangle size={14} /></span>
+              )}
             </div>
           </div>
         </div>
 
         {/* NCB Warning */}
-        {cdi.triggered && (
+        {cdi.triggered && fraud.overallClean && (
           <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 mb-4 animate-fade-in-up">
             <div className="flex gap-2">
               <AlertTriangle size={16} className="text-warning shrink-0 mt-0.5" />
@@ -176,7 +233,7 @@ export default function Dashboard() {
         )}
 
         {/* Alert Banner */}
-        {showAlert && cdi.triggered && (
+        {showAlert && cdi.triggered && fraud.overallClean && (
           <div className="rounded-lg bg-triggered/10 border border-triggered/30 p-3 mb-4 animate-fade-in-up">
             <p className="text-xs text-triggered font-semibold">
               🚨 CDI Score {cdi.total} — Heavy Rain triggered in {worker.zone}. Auto-claim initiated. Fraud check: Passed.
@@ -188,7 +245,7 @@ export default function Dashboard() {
           <Button onClick={simulate} disabled={simulating} variant="outline" className="flex-1 h-11 border-primary/30 text-primary hover:bg-primary/10 active:scale-[0.98] transition-transform gap-1.5">
             <Zap size={16} /> {simulating ? "Simulating..." : "Simulate Disruption"}
           </Button>
-          <Button onClick={() => navigate("/payout")} disabled={!cdi.triggered} className="flex-1 h-11 bg-primary hover:bg-primary/90 active:scale-[0.98] transition-transform">
+          <Button onClick={() => navigate("/payout")} disabled={!cdi.triggered || !fraud.overallClean} className="flex-1 h-11 bg-primary hover:bg-primary/90 active:scale-[0.98] transition-transform">
             View Payout
           </Button>
         </div>

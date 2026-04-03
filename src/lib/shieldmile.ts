@@ -133,20 +133,30 @@ export function generateEventId(): string {
 // ===== Fraud Checks =====
 export interface FraudResult {
   gpsValid: boolean; activityClean: boolean; claimHistoryOk: boolean;
-  deviceOk: boolean; overallClean: boolean;
+  weatherHistoryMatchOk: boolean; deviceOk: boolean; overallClean: boolean;
+  rejectionReason?: string;
 }
 
-export function runFraudCheck(claimsThisWeek: number = 0): FraudResult {
-  const gpsValid = true;
+export function runFraudCheck(claimsThisWeek: number = 0, triggerGpsSpoof: boolean = false, triggerWeatherMismatch: boolean = false): FraudResult {
+  const gpsValid = !triggerGpsSpoof;
+  const weatherHistoryMatchOk = !triggerWeatherMismatch;
   const activityClean = true;
   const claimHistoryOk = claimsThisWeek < 2;
   const deviceOk = true;
-  const overallClean = gpsValid && activityClean && claimHistoryOk && deviceOk;
-  return { gpsValid, activityClean, claimHistoryOk, deviceOk, overallClean };
+  
+  const overallClean = gpsValid && activityClean && claimHistoryOk && deviceOk && weatherHistoryMatchOk;
+  
+  let rejectionReason = undefined;
+  if (!gpsValid) rejectionReason = "Impossible Velocity Detected (GPS Spoofing)";
+  else if (!weatherHistoryMatchOk) rejectionReason = "Open-Meteo Historical Archive Mismatch";
+  else if (!claimHistoryOk) rejectionReason = "Claim Frequency Limit Exceeded";
+
+  return { gpsValid, activityClean, claimHistoryOk, weatherHistoryMatchOk, deviceOk, overallClean, rejectionReason };
 }
 
 // ===== Worker Data (sessionStorage) =====
 export interface WorkerData {
+  id?: string;
   name: string; phone: string; partnerId: string; platform: Platform;
   zone: Zone; weeklyEarnings: number; upiId: string;
   selectedTier?: Tier; ncbStreak: number;
