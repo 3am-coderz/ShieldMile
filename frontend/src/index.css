@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 216 39% 10%;
+    --foreground: 0 0% 100%;
+
+    --card: 215 35% 15%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 215 35% 15%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 174 100% 35%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 216 39% 20%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 216 30% 20%;
+    --muted-foreground: 215 20% 70%;
+
+    --accent: 174 100% 35%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 216 30% 25%;
+    --input: 216 30% 25%;
+    --ring: 174 100% 35%;
+
+    --radius: 0.75rem;
+
+    --safe: 142 71% 45%;
+    --safe-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --triggered: 0 84% 60%;
+    --triggered-foreground: 0 0% 100%;
+    --streak: 24 94% 53%;
+
+    --surface: 216 35% 13%;
+    --surface-foreground: 0 0% 100%;
+
+    --sidebar-background: 216 39% 8%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-primary: 174 100% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 216 39% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 216 30% 18%;
+    --sidebar-ring: 174 100% 35%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .card-surface {
+    @apply bg-card text-card-foreground rounded-xl shadow-lg shadow-black/5;
+  }
+
+  .page-container {
+    @apply min-h-screen bg-background px-4 py-6;
+  }
+
+  .page-content {
+    @apply max-w-[480px] mx-auto;
+  }
+
+  .badge-safe {
+    @apply bg-[hsl(var(--safe))] text-[hsl(var(--safe-foreground))];
+  }
+
+  .badge-warning {
+    @apply bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))];
+  }
+
+  .badge-triggered {
+    @apply bg-[hsl(var(--triggered))] text-[hsl(var(--triggered-foreground))];
+  }
+
+  .text-safe { color: hsl(var(--safe)); }
+  .text-warning { color: hsl(var(--warning)); }
+  .text-triggered { color: hsl(var(--triggered)); }
+  .text-streak { color: hsl(var(--streak)); }
+
+  .bg-navy { background-color: hsl(216 39% 10%); }
+  .bg-navy-deep { background-color: hsl(216 39% 6%); }
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.4); }
+}
+
+@keyframes gauge-fill {
+  from { stroke-dashoffset: 283; }
+}
+
+@keyframes check-draw {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.stagger-1 { animation-delay: 80ms; }
+.stagger-2 { animation-delay: 160ms; }
+.stagger-3 { animation-delay: 240ms; }
+.stagger-4 { animation-delay: 320ms; }
+.stagger-5 { animation-delay: 400ms; }
+.stagger-6 { animation-delay: 480ms; }

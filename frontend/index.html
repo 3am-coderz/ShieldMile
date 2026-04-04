@@ -1,252 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- TODO: Set the document title to the name of your application -->
+    <title>ShieldMile</title>
+    <meta name="description" content="Insurance of Gig workers">
+    <meta name="author" content="Lovable" />
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDI Platform – Gig Worker Insurance</title>
-    <meta name="description" content="Parametric Climate Disruption Insurance Platform for Gig Workers in India">
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- TODO: Update og:title to match your application name -->
+    
+    
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/683c0fb3-30bb-46f1-8cf7-1e2c1c6766da/id-preview-1ad8a156--6bc29b06-805f-4e19-828f-de03f6995e47.lovable.app-1774011157008.png">
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@Lovable" />
+    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/683c0fb3-30bb-46f1-8cf7-1e2c1c6766da/id-preview-1ad8a156--6bc29b06-805f-4e19-828f-de03f6995e47.lovable.app-1774011157008.png">
+    <meta property="og:title" content="Lovable App">
+  <meta name="twitter:title" content="Lovable App">
+  <meta property="og:description" content="Insurance of Gig workers">
+  <meta name="twitter:description" content="Insurance of Gig workers">
 </head>
 
-<body>
-    <nav id="main-nav">
-        <div class="nav-brand">
-            <span class="brand-icon">🛡️</span>
-            <h1>GigShield CDI</h1>
-        </div>
-        <div class="nav-tabs">
-            <button class="tab active" onclick="showScreen('dashboard')">1. Dashboard</button>
-            <button class="tab" onclick="showScreen('history')">2. Payout History</button>
-            <button class="tab" onclick="showScreen('premium')">3. Premium & Coverage</button>
-            <button class="tab" onclick="showScreen('audit')">4. Claim Audit Trail</button>
-            <button class="tab" onclick="showScreen('exclusions')">5. Exclusions & Policy</button>
-            <button class="tab" onclick="showScreen('alerts')">6. Proactive Alerts</button>
-            <button class="tab" style="margin-left: auto; border: 1px solid var(--red-bg); color: var(--red);"
-                onclick="logout()">🚪 Logout</button>
-        </div>
-    </nav>
-
-    <div id="controls-bar">
-        <div class="control-group">
-            <label>Worker:</label>
-            <select id="worker-select"></select>
-        </div>
-        <div class="control-group sim-buttons">
-            <button class="btn btn-rain" onclick="triggerRain()">🌧️ Sim Rain</button>
-            <button class="btn btn-flood" onclick="triggerFlood()">🌊 Flood</button>
-            <button class="btn btn-pandemic" onclick="triggerPandemic()">🦠 Pandemic</button>
-            <button class="btn btn-spoof" onclick="triggerSpoof()">📡 GPS Spoof</button>
-            <button class="btn btn-tick" onclick="tickInterval()">⏱️ Tick 15m</button>
-            <button class="btn btn-reset" onclick="resetSim()">🔄 Reset</button>
-        </div>
-    </div>
-
-    <!-- Screen A: Login Form -->
-    <section id="screen-login" class="screen"
-        style="display:flex; align-items:center; justify-content:center; height:100vh; padding:0; background:var(--bg); position: fixed; top:0; left:0; width:100%; z-index:1000;">
-        <div class="card" style="width:100%; max-width:400px; padding:32px; background:var(--surface);">
-            <div style="text-align:center; margin-bottom: 24px;">
-                <span style="font-size: 3rem;">🛡️</span>
-                <h2 style="font-size:1.5rem; color:var(--accent2); margin-top:8px;">GigShield Login</h2>
-            </div>
-            <div id="login-error"
-                style="background:var(--red-bg); color:var(--red); padding:10px; border-radius:8px; font-size:0.85rem; margin-bottom:16px; text-align:center; display:none;">
-                Invalid username or password</div>
-
-            <div style="margin-bottom:16px;">
-                <label style="display:block; font-size:0.85rem; color:var(--text2); margin-bottom:8px;">Username (Worker
-                    ID)</label>
-                <input type="text" id="login-user"
-                    style="width:100%; padding:12px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px;"
-                    placeholder="e.g. worker_food_delivery_1" value="worker_food_delivery_1">
-            </div>
-
-            <div style="margin-bottom:24px;">
-                <label style="display:block; font-size:0.85rem; color:var(--text2); margin-bottom:8px;">Password</label>
-                <input type="password" id="login-pass"
-                    style="width:100%; padding:12px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px;"
-                    placeholder="Enter password" value="password123">
-            </div>
-
-            <button class="btn btn-primary" id="btn-login" style="width:100%; padding:14px; font-size:1rem;"
-                onclick="performLogin()">Login</button>
-        </div>
-    </section>
-
-    <div id="app-content" style="display: none;">
-        <!-- Screen 1: Worker Dashboard (Enhanced) -->
-        <section id="screen-dashboard" class="screen active">
-            <div class="dashboard-grid">
-                <div class="card card-cdi">
-                    <h2>Live CDI Score</h2>
-                    <div class="gauge-wrapper">
-                        <div class="gauge-ring" id="cdi-ring">
-                            <div class="gauge-value" id="cdi-val">0</div>
-                            <div class="gauge-label">/ 100</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card card-weather">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <h2 style="margin:0;">Current Weather Zone</h2>
-                        <button id="btn-live-loc" class="btn" onclick="useLiveLocation()"
-                            style="background:var(--surface2); border:1px solid var(--border); color:var(--accent2); font-size:0.7rem; padding:4px 8px;">📍
-                            Use My Live Location</button>
-                    </div>
-                    <div id="weather-location" style="font-size:0.75rem; color:var(--text2); margin-bottom:8px;"></div>
-                    <div id="weather-info" class="weather-box">
-                        <div class="weather-row"><span>🌧️ Rainfall:</span><strong id="w-rain">0 mm/hr</strong></div>
-                        <div class="weather-row"><span>💨 Wind:</span><strong id="w-wind">10 km/hr</strong></div>
-                        <div class="weather-row"><span>👁️ Visibility:</span><strong id="w-vis">10 km</strong></div>
-                    </div>
-                    <div id="weather-source"
-                        style="font-size:0.7rem; color:var(--green); margin-top:8px; text-align:right;"></div>
-                </div>
-
-                <div class="card card-trust">
-                    <h2>Zone Consensus</h2>
-                    <div id="trust-indicator" class="trust-badge trust-green">
-                        <span class="trust-pct" id="trust-pct">100%</span>
-                        <span class="trust-label">Verified</span>
-                    </div>
-                </div>
-
-                <div class="card card-exclusion">
-                    <h2>Exclusion Status</h2>
-                    <div id="exclusion-status" class="exclusion-ok">
-                        <span class="status-icon">✅</span>
-                        <span>Coverage Active – No exclusions detected</span>
-                    </div>
-                </div>
-
-                <div class="card card-premium">
-                    <h2>Premium & Payouts</h2>
-                    <div class="fin-box">
-                        <div class="fin-row"><span>Total Week Premium:</span><strong id="dash-prem-total">₹0</strong>
-                        </div>
-                        <div class="fin-row"><span>Today's Premium Paid:</span><strong id="dash-prem-today">₹0</strong>
-                        </div>
-                        <div class="fin-row"><span>Weekly Max Payout:</span><strong id="dash-max-payout">₹1000</strong>
-                        </div>
-                        <button class="btn btn-why" onclick="showScreen('premium')"
-                            style="margin-top:12px; width:100%;">Why is my premium this amount?</button>
-                    </div>
-                </div>
-
-                <div class="card card-disruption" id="disruption-card">
-                    <h2>Active Disruption Status</h2>
-                    <div id="disruption-banner" class="disruption-inactive">
-                        <span>No active disruption</span>
-                    </div>
-                    <div id="payout-info" class="payout-details hidden">
-                        <div>Earnings so far: ₹<span id="acc-payout">0</span></div>
-                        <div style="text-align: right;">Time Active: <span id="hours-active">0</span>h</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Screen 2: Payout History (Enhanced) -->
-        <section id="screen-history" class="screen">
-            <div class="card card-wide">
-                <h2>Past Disruption Events</h2>
-                <div id="history-list" class="history-grid"></div>
-            </div>
-        </section>
-
-        <!-- Screen 3: Premium & Coverage (Explainability Focus) -->
-        <section id="screen-premium" class="screen">
-            <div class="card card-wide">
-                <h2>Premium Explanation (SHAP)</h2>
-                <p id="fairness-note" class="fairness-note"></p>
-                <p id="premium-text" class="premium-explanation-text"></p>
-                <div class="chart-container">
-                    <canvas id="shapChart"></canvas>
-                </div>
-                <div class="forecast-box">
-                    <h3>Next 7-Day Risk Forecast</h3>
-                    <div class="forecast-grid">
-                        <div>Disruption Probability: <strong id="fc-prob" style="color:var(--yellow)">0%</strong></div>
-                        <div>Predicted Avg Rainfall: <strong id="fc-rain">0 mm/hr</strong></div>
-                    </div>
-                </div>
-                <div id="feature-details" class="feature-table-container"></div>
-            </div>
-        </section>
-
-        <!-- Screen 4: Claim Audit Trail (New Timeline) -->
-        <section id="screen-audit" class="screen">
-            <div class="card card-wide">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px;">
-                    <h2>Claim Audit Trail</h2>
-                    <button class="btn"
-                        style="background:var(--surface2); color:var(--text); border:1px solid var(--border);"
-                        onclick="alert('Downloading Certified PDF...')">📥 Download PDF</button>
-                </div>
-                <p class="audit-subtitle">15-minute interval timeline with full CDI, consensus, and exclusion logs.</p>
-                <div id="audit-timeline"></div>
-            </div>
-        </section>
-
-        <!-- Screen 5: Exclusions & Policy Info -->
-        <section id="screen-exclusions" class="screen">
-            <div class="card card-wide">
-                <h2>What is NOT Covered</h2>
-                <div id="exclusions-content"></div>
-
-                <div class="data-privacy-box">
-                    <h3>Data Privacy & Consent</h3>
-                    <p>All your data is encrypted at rest per the DPDP Act. We only collect coordinates, delivery
-                        metrics, and physical weather data when you toggle "Online".</p>
-                </div>
-
-                <div class="grievance-section">
-                    <h3>Grievance Redressal</h3>
-                    <p>Dispute a claim rejection within 7 days by submitting evidence.</p>
-                    <div style="display:flex; gap:12px; margin-top:8px;">
-                        <button class="btn btn-primary" onclick="alert('Grievance filed (demo).')">File Dispute</button>
-                        <button class="btn" style="background:#555;" onclick="alert('Calling Ombudsman (demo)...')">Call
-                            Ombudsman: 1800-XXX</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Screen 6: Proactive Alerts -->
-        <section id="screen-alerts" class="screen">
-            <div class="card card-wide">
-                <h2>Proactive Notifications</h2>
-                <div class="alerts-grid">
-                    <div class="alert-card shadow-green">
-                        <h3>💡 Reward Notice</h3>
-                        <p>You avoided a payout last week by substituting outdoor work for warehouse prep. <strong>₹5
-                                premium discount</strong> applied this week!</p>
-                    </div>
-                    <div class="alert-card shadow-yellow">
-                        <h3>🌦️ Action Needed</h3>
-                        <p>Heavy rain predicted for your zone tomorrow. Expected disruption probability: 80%. Consider
-                            pre-booking indoor shifts.</p>
-                    </div>
-                    <div class="alert-card">
-                        <h3>📊 Reinsurance Status</h3>
-                        <button class="btn" onclick="loadStopLoss()">Refresh</button>
-                        <pre id="risk-json"></pre>
-                    </div>
-                    <div class="alert-card">
-                        <h3>🤖 Model Health</h3>
-                        <button class="btn" onclick="loadDrift()">Check Drift</button>
-                        <pre id="drift-json"></pre>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </div> <!-- /app-content -->
-
-    <script src="app.js"></script>
-</body>
-
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
