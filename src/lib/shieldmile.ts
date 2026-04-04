@@ -49,18 +49,64 @@ export function getNCBDiscount(streakWeeks: number): number {
   return 0;
 }
 
-// ===== Premium Calculation =====
-export function calculatePremium(tier: Tier, zone: Zone, ncbStreak: number = 0, date?: Date): {
-  base: number; multiplier: number; seasonal: number; ncbDiscount: number;
-  originalPremium: number; finalPremium: number;
+// ===== SHAP ML Premium Engine (Ported from 1.5 ml_premium.py) =====
+export interface SHAPBreakdown {
+  feature: string;
+  impactLabel: string;
+  impactValue: number;
+  sign: "+" | "-";
+}
+
+export function calculateMLPremium(tier: Tier, zone: Zone, ncbStreak: number = 0, reliabilityScore: number = 85): {
+  base: number; 
+  multiplier: number; 
+  seasonal: number; 
+  ncbDiscount: number;
+  originalPremium: number; 
+  finalPremium: number;
+  riskScore: number;
+  shapData: SHAPBreakdown[];
 } {
   const base = TIER_BASE_RATES[tier];
+  
+  // Pseudo-XGBoost variables
+  const rainfall7dAvg = (ZONE_SCORES[zone] / 100) * 30 + (Math.random() * 5); 
+  const floodHistory = zone === "Velachery" || zone === "OMR" ? 1 : 0;
+  const rainVelocity = Math.random() * 10;
+  
+  // The y = function from ml_premium.py
+  // y = (rainfall * 0.8) + (flood_history * 15) - (reliability - 60) * 0.5 + ...
+  const rawRisk = (rainfall7dAvg * 0.8) + (floodHistory * 15) - ((reliabilityScore - 60) * 0.5) + (rainVelocity * 0.3) + 20;
+  const riskScore = Math.min(100, Math.max(0, rawRisk));
+
+  // Determine SHAP pseudo-impacts explicitly
+  const shapData: SHAPBreakdown[] = [];
+  
+  const addShap = (feature: string, val: number) => {
+    const monetary = Math.round(Math.abs(val) * 0.5);
+    if (monetary >= 1) {
+       shapData.push({ feature, impactLabel: `₹${monetary}`, impactValue: monetary, sign: val >= 0 ? "+" : "-" });
+    }
+  };
+
+  addShap("Avg rainfall (7d)", (rainfall7dAvg * 0.8) - 15);
+  addShap("Flood history", floodHistory * 15);
+  addShap("Your reliability", -((reliabilityScore - 60) * 0.5));
+  addShap("Rain acceleration", rainVelocity * 0.3);
+
+  // Re-adjust tier base using riskScore directly simulating the Python tier logic
+  let adjustedBase = base;
+  if (riskScore > 75) adjustedBase += Math.round((riskScore - 75) * 0.8);
+  else if (riskScore < 50) adjustedBase -= 10;
+
   const multiplier = ZONE_MULTIPLIERS[zone];
-  const seasonal = getSeasonalFactor(date);
+  const seasonal = getSeasonalFactor(new Date());
   const ncbDiscount = getNCBDiscount(ncbStreak);
-  const originalPremium = Math.round(base * multiplier * seasonal);
+  
+  const originalPremium = Math.round(adjustedBase * multiplier * seasonal);
   const finalPremium = Math.round(originalPremium * (1 - ncbDiscount));
-  return { base, multiplier, seasonal, ncbDiscount, originalPremium, finalPremium };
+
+  return { base: adjustedBase, multiplier, seasonal, ncbDiscount, originalPremium, finalPremium, riskScore, shapData };
 }
 
 // ===== CDI Calculation =====
@@ -134,24 +180,26 @@ export function generateEventId(): string {
 export interface FraudResult {
   gpsValid: boolean; activityClean: boolean; claimHistoryOk: boolean;
   weatherHistoryMatchOk: boolean; deviceOk: boolean; overallClean: boolean;
-  rejectionReason?: string;
+  pandemicActive: boolean; rejectionReason?: string;
 }
 
-export function runFraudCheck(claimsThisWeek: number = 0, triggerGpsSpoof: boolean = false, triggerWeatherMismatch: boolean = false): FraudResult {
+export function runFraudCheck(claimsThisWeek: number = 0, triggerGpsSpoof: boolean = false, triggerWeatherMismatch: boolean = false, triggerPandemicLockdown: boolean = false): FraudResult {
   const gpsValid = !triggerGpsSpoof;
   const weatherHistoryMatchOk = !triggerWeatherMismatch;
   const activityClean = true;
   const claimHistoryOk = claimsThisWeek < 2;
   const deviceOk = true;
+  const pandemicActive = triggerPandemicLockdown;
   
-  const overallClean = gpsValid && activityClean && claimHistoryOk && deviceOk && weatherHistoryMatchOk;
+  const overallClean = gpsValid && activityClean && claimHistoryOk && deviceOk && weatherHistoryMatchOk && !pandemicActive;
   
   let rejectionReason = undefined;
-  if (!gpsValid) rejectionReason = "Impossible Velocity Detected (GPS Spoofing)";
+  if (pandemicActive) rejectionReason = "Pandemic Lockdown Active (Standard Exclusion)";
+  else if (!gpsValid) rejectionReason = "Impossible Velocity Detected (GPS Spoofing)";
   else if (!weatherHistoryMatchOk) rejectionReason = "Open-Meteo Historical Archive Mismatch";
   else if (!claimHistoryOk) rejectionReason = "Claim Frequency Limit Exceeded";
 
-  return { gpsValid, activityClean, claimHistoryOk, weatherHistoryMatchOk, deviceOk, overallClean, rejectionReason };
+  return { gpsValid, activityClean, claimHistoryOk, weatherHistoryMatchOk, deviceOk, pandemicActive, overallClean, rejectionReason };
 }
 
 // ===== Worker Data (sessionStorage) =====

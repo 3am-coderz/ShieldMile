@@ -7,6 +7,7 @@ import { loadWorkerData, calculateCDI, runFraudCheck, type CDIInputs, type CDIRe
 import { CloudRain, Wind, Thermometer, CloudFog, ShieldAlert, CheckCircle, AlertTriangle, MapPin, Smartphone, Activity, FileText, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const DEMO_INPUTS: CDIInputs = { rainfall: 47, orderSurge: 165, slaBreach: 58, riderSupplyDrop: 42 };
 const SAFE_INPUTS: CDIInputs = { rainfall: 12, orderSurge: 80, slaBreach: 20, riderSupplyDrop: 15 };
@@ -19,9 +20,13 @@ export default function Dashboard() {
   const [simulating, setSimulating] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   
+  const [payoutState, setPayoutState] = useState<"IDLE" | "MONITORING" | "EXCLUSION_CHECK" | "THRESHOLD_BREACH" | "CONSENSUS_CHECK" | "STOP_LOSS_CHECK" | "RELEASED" | "REJECTED">("IDLE");
+
   const [forceDemo, setForceDemo] = useState(false);
   const [spoofGps, setSpoofGps] = useState(false);
   const [spoofWeather, setSpoofWeather] = useState(false);
+  const [triggerPandemic, setTriggerPandemic] = useState(false);
+  const { location, requestLocation } = useGeolocation();
 
   useEffect(() => {
     const w = loadWorkerData();
@@ -32,11 +37,12 @@ export default function Dashboard() {
   const simulate = () => {
     setSimulating(true);
     setShowAlert(false);
+    setPayoutState("MONITORING");
     
     // Animate from safe to triggered
     const steps = 30;
     let step = 0;
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       step++;
       const t = step / steps;
       const current: CDIInputs = {
@@ -51,14 +57,29 @@ export default function Dashboard() {
       if (step >= steps) {
         clearInterval(interval);
         
-        const activeFraudCheck = runFraudCheck(0, spoofGps, spoofWeather);
-
         if (result.triggered && worker?.id) {
+          
+          setPayoutState("EXCLUSION_CHECK");
+          const activeFraudCheck = runFraudCheck(0, spoofGps, spoofWeather, triggerPandemic);
+          await new Promise(r => setTimeout(r, 1200));
+
           if (!activeFraudCheck.overallClean) {
+             setPayoutState("REJECTED");
              toast.error(`Smart Contract Claim Rejected: ${activeFraudCheck.rejectionReason}`);
              setSimulating(false);
              return; // Halt payout navigation
           }
+
+          setPayoutState("THRESHOLD_BREACH");
+          await new Promise(r => setTimeout(r, 1000));
+          
+          setPayoutState("CONSENSUS_CHECK");
+          await new Promise(r => setTimeout(r, 1500));
+
+          setPayoutState("STOP_LOSS_CHECK");
+          await new Promise(r => setTimeout(r, 1000));
+
+          setPayoutState("RELEASED");
 
           supabase.from('policies').select('id').eq('worker_id', worker.id).eq('status', 'active').single()
           .then(({data}) => {
@@ -73,6 +94,8 @@ export default function Dashboard() {
                 }).then(() => {});
              }
           });
+        } else {
+           setPayoutState("IDLE");
         }
 
         setSimulating(false);
@@ -82,7 +105,7 @@ export default function Dashboard() {
   };
 
   if (!worker) return null;
-  const fraud = runFraudCheck(0, spoofGps, spoofWeather);
+  const fraud = runFraudCheck(0, spoofGps, spoofWeather, triggerPandemic);
   const isMidRange = cdi.total >= 45 && cdi.total <= 60;
 
   const triggers = [
@@ -109,7 +132,12 @@ export default function Dashboard() {
             <span className="text-xs font-medium text-safe">Active</span>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-4 animate-slide-up stagger-1">{worker.name} · {worker.zone}</p>
+        <div className="flex items-center justify-between mb-4 animate-slide-up stagger-1">
+          <p className="text-sm text-muted-foreground">{worker.name} · {worker.zone}</p>
+          <Button variant="outline" size="sm" onClick={requestLocation} disabled={location.loaded} className="h-7 text-[10px] gap-1.5 border-primary/20 text-primary hover:bg-primary/10 transition-colors">
+            <MapPin size={12} /> {location.loaded ? location.locationName || "Location Synced" : "Use Live Location"}
+          </Button>
+        </div>
 
         {/* CDI Gauge */}
         <div className="card-surface p-6 mb-4 animate-slide-up stagger-2 flex flex-col items-center">
@@ -165,7 +193,10 @@ export default function Dashboard() {
           ))}
         </div>
 
-          <div className="space-y-1.5 mb-4 p-2 bg-background border border-border/50 rounded-lg">
+          <div className="space-y-1.5 mb-4 p-3 bg-background border border-border/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-border/50">
+               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Disaster Simulation Deck</span>
+            </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="forceDemo" checked={forceDemo} onChange={e => setForceDemo(e.target.checked)} className="rounded text-warning w-3.5 h-3.5 ml-1" />
               <label htmlFor="forceDemo" className="text-[10px] font-semibold text-warning">Force Disaster Payout</label>
@@ -177,6 +208,10 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
               <input type="checkbox" id="spoofWeather" checked={spoofWeather} onChange={e => setSpoofWeather(e.target.checked)} className="rounded text-indigo-400 w-3.5 h-3.5 ml-1" />
               <label htmlFor="spoofWeather" className="text-[10px] font-semibold text-indigo-400">Trigger Historical Weather Mismatch Rejection</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="triggerPandemic" checked={triggerPandemic} onChange={e => setTriggerPandemic(e.target.checked)} className="rounded text-triggered w-3.5 h-3.5 ml-1" />
+              <label htmlFor="triggerPandemic" className="text-[10px] font-semibold text-triggered">Trigger Pandemic Lockdown (Exclusion)</label>
             </div>
           </div>
 
@@ -222,8 +257,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Proactive Nudge */}
-        {isMidRange && !cdi.triggered && (
+        {/* Proactive Nudge - Suppressed during simulation to avoid flicker */}
+        {isMidRange && !cdi.triggered && !simulating && (
           <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 mb-4 animate-fade-in-up">
             <p className="text-xs text-primary">
               CDI at {cdi.total} — disruption possible but not triggered yet. Your {worker.ncbStreak}-week streak is safe today! 🎯
@@ -239,6 +274,51 @@ export default function Dashboard() {
               🚨 CDI Score {cdi.total} — Heavy Rain triggered in {worker.zone}. Auto-claim initiated. Fraud check: Passed.
             </p>
           </div>
+        )}
+
+        {/* State Machine UI */}
+        {payoutState !== "IDLE" && (
+           <div className="card-surface p-4 mb-4 animate-fade-in-up border border-[#233145]">
+             <p className="text-xs font-semibold text-card-foreground mb-3 uppercase tracking-widest text-center">Oracle State Machine</p>
+             <div className="flex flex-col gap-2">
+                {[
+                  { state: "MONITORING", label: "Monitoring Feeds" },
+                  { state: "EXCLUSION_CHECK", label: "Evaluating Exclusions & Fraud" },
+                  { state: "THRESHOLD_BREACH", label: "CDI Breach Confirmed" },
+                  { state: "CONSENSUS_CHECK", label: "Verifying Zone Consensus" },
+                  { state: "STOP_LOSS_CHECK", label: "Checking City Stop-Loss Caps" },
+                  { state: "RELEASED", label: "Claim Minted & Disbursed" }
+                ].map((s, idx) => {
+                   const orderList = ["MONITORING", "EXCLUSION_CHECK", "THRESHOLD_BREACH", "CONSENSUS_CHECK", "STOP_LOSS_CHECK", "RELEASED", "REJECTED"];
+                   const currentIndex = orderList.indexOf(payoutState);
+                   const thisIndex = orderList.indexOf(s.state);
+                   
+                   let statusClass = "text-muted-foreground opacity-50";
+                   let icon = <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30" />;
+                   
+                   if (payoutState === "REJECTED" && thisIndex >= orderList.indexOf("THRESHOLD_BREACH")) {
+                      return null; // Don't show further states if rejected
+                   }
+                   if (payoutState === "REJECTED" && s.state === "EXCLUSION_CHECK") {
+                      statusClass = "text-triggered font-bold bg-triggered/10 px-2 py-1 rounded";
+                      icon = <AlertTriangle size={16} className="text-triggered animate-pulse" />;
+                   } else if (currentIndex > thisIndex) {
+                      statusClass = "text-safe font-medium";
+                      icon = <CheckCircle size={16} className="text-safe" />;
+                   } else if (currentIndex === thisIndex) {
+                      statusClass = "text-primary font-bold animate-pulse";
+                      icon = <Activity size={16} className="text-primary" />;
+                   }
+                   
+                   return (
+                     <div key={s.state} className="flex items-center gap-3 text-xs mb-1">
+                        <div className="w-5 flex justify-center">{icon}</div>
+                        <span className={statusClass}>{s.label}</span>
+                     </div>
+                   );
+                })}
+             </div>
+           </div>
         )}
 
         <div className="flex gap-3 mb-4">

@@ -9,6 +9,9 @@ import Policy from "./pages/Policy";
 import Dashboard from "./pages/Dashboard";
 import Payout from "./pages/Payout";
 import Admin from "./pages/Admin";
+import Audit from "./pages/Audit";
+import Exclusions from "./pages/Exclusions";
+import History from "./pages/History";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/payout" element={<Payout />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/audit" element={<Audit />} />
+          <Route path="/exclusions" element={<Exclusions />} />
+          <Route path="/history" element={<History />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ShieldMileLogo } from "@/components/ShieldMileLogo";
 import { CountUp } from "@/components/CountUp";
 import { Button } from "@/components/ui/button";
-import { loadWorkerData, calculatePayout, calculatePremium, getNCBDiscount, generateEventId } from "@/lib/shieldmile";
+import { loadWorkerData, calculatePayout, calculateMLPremium, getNCBDiscount, generateEventId } from "@/lib/shieldmile";
 import { CheckCircle, ArrowRight, Landmark, Smartphone, ShieldCheck, Banknote } from "lucide-react";
 
 export default function Payout() {
@@ -25,8 +25,8 @@ export default function Payout() {
   const tier = worker.selectedTier || "Standard";
   // Demo forces CDI=76 to fetch middle-tier payouts representing standard claims.
   const payout = calculatePayout(worker.weeklyEarnings, 4, 76);
-  const premium = calculatePremium(tier, worker.zone, worker.ncbStreak);
-  const premiumNoNCB = calculatePremium(tier, worker.zone, 0);
+  const premium = calculateMLPremium(tier, worker.zone, worker.ncbStreak);
+  const premiumNoNCB = calculateMLPremium(tier, worker.zone, 0);
   const ncbSaved = premiumNoNCB.finalPremium - premium.finalPremium;
   const netProtection = payout.payout - premium.finalPremium;
   const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute:"2-digit" });
@@ -126,11 +126,8 @@ export default function Payout() {
         </div>
 
         <div className="flex gap-3">
-          <Button onClick={() => navigate("/dashboard")} variant="outline" className="flex-1 h-12 border-primary/30 text-primary hover:bg-primary/10 active:scale-[0.98] transition-transform rounded-xl font-bold">
-            Return Home
-          </Button>
-          <Button onClick={() => navigate("/admin")} className="flex-1 h-12 bg-primary hover:bg-primary/90 active:scale-[0.98] transition-transform gap-1.5 rounded-xl font-bold">
-            Admin Logs <ArrowRight size={16} />
+          <Button onClick={() => navigate("/dashboard")} className="flex-1 h-12 bg-primary hover:bg-primary/90 active:scale-[0.98] transition-transform rounded-xl font-bold flex items-center justify-center gap-2">
+            Return to Live Dashboard <ArrowRight size={18} />
           </Button>
         </div>
       </div>

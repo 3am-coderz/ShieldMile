@@ -4,10 +4,10 @@ import { ShieldMileLogo } from "@/components/ShieldMileLogo";
 import { ShieldScoreBadge } from "@/components/ShieldScoreBadge";
 import { Button } from "@/components/ui/button";
 import {
-  loadWorkerData, saveWorkerData, getShieldScore, getRiskLabel, calculatePremium,
+  loadWorkerData, saveWorkerData, getShieldScore, getRiskLabel, calculateMLPremium,
   getNCBDiscount, TIERS, TIER_MAX_PAYOUTS, type Tier, type WorkerData,
 } from "@/lib/shieldmile";
-import { Shield, CheckCircle, Flame, ChevronRight } from "lucide-react";
+import { Shield, CheckCircle, Flame, ChevronRight, Calculator, Check, AlertTriangle } from "lucide-react";
 
 const COVERED_EVENTS = [
   "Heavy Rain (>35mm/hr)", "Cyclone Alert", "Extreme Heat (>43°C)",
@@ -81,7 +81,7 @@ export default function Policy() {
         {/* Tier Cards */}
         <div className="space-y-3 mb-4">
           {TIERS.map((tier, i) => {
-            const p = calculatePremium(tier, worker.zone, ncbStreak);
+            const p = calculateMLPremium(tier, worker.zone, ncbStreak, 85);
             const isSelected = selectedTier === tier;
             const isRecommended = tier === "Standard";
             return (
@@ -107,16 +107,41 @@ export default function Policy() {
           })}
         </div>
 
-        {/* Formula */}
+        {/* XGBoost SHAP Pricing Breakdown */}
         {(() => {
-          const p = calculatePremium(selectedTier, worker.zone, ncbStreak);
+          const p = calculateMLPremium(selectedTier, worker.zone, ncbStreak, 85);
           return (
-            <div className="card-surface p-4 mb-4 animate-fade-in-up">
-              <p className="text-xs font-semibold text-card-foreground mb-2">Premium Breakdown</p>
-              <p className="text-xs text-muted-foreground font-mono">
-                ₹{p.base} × {p.multiplier} × {p.seasonal} × {(1 - p.ncbDiscount).toFixed(2)} = <span className="text-primary font-bold">₹{p.finalPremium}</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1">Base × Zone Multiplier × Seasonal × NCB Discount</p>
+            <div className="card-surface p-0 mb-4 animate-fade-in-up overflow-hidden rounded-xl border border-[#233145]">
+              <div className="bg-[#1a2536] p-4 border-b border-[#233145] flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                    <Calculator size={16} className="text-primary" />
+                    <p className="text-xs font-bold text-card-foreground">XGBoost Risk Matrix</p>
+                 </div>
+                 <div className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                    Model Live
+                 </div>
+              </div>
+              <div className="p-4 space-y-3">
+                 <p className="text-xs text-muted-foreground mb-4">
+                   Your dynamic premium is calculated using 7-day environmental averages. Base Risk Score: <span className="text-foreground font-bold">{Math.round(p.riskScore)}/100</span>
+                 </p>
+                 
+                 {p.shapData.map((shap, idx) => (
+                    <div key={idx} className="flex justify-between items-center bg-background/50 p-2.5 rounded border border-border/50">
+                       <span className="text-xs text-card-foreground font-medium">{shap.feature}</span>
+                       <span className={`text-xs font-bold ${shap.sign === '+' ? 'text-triggered' : 'text-safe'}`}>
+                         {shap.sign}{shap.impactLabel}
+                       </span>
+                    </div>
+                 ))}
+
+                 <div className="pt-3 border-t border-border/50 mt-4">
+                   <div className="flex justify-between items-center">
+                     <span className="text-xs text-muted-foreground">Current Weekly Premium</span>
+                     <span className="text-primary font-bold">₹{p.finalPremium}</span>
+                   </div>
+                 </div>
+              </div>
             </div>
           );
         })()}

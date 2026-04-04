@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldMileLogo } from "@/components/ShieldMileLogo";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { saveWorkerData, type Platform, type Zone, PLATFORMS, ZONES, validatePartnerId } from "@/lib/shieldmile";
@@ -10,6 +10,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -57,7 +58,8 @@ export default function Onboarding() {
       .single();
 
     if (error) {
-      toast.error("Registration failed. Please ensure the Partner ID or Phone is not already in use.");
+      console.error("Supabase registration error:", error);
+      toast.error(`Registration failed: ${error.message}`);
       setLoading(false);
       return;
     }
@@ -74,6 +76,9 @@ export default function Onboarding() {
       upiId: formData.upiId,
       ncbStreak: 0
     });
+
+    setLoading(false);
+    navigate("/policy");
 
     setLoading(false);
     navigate("/policy");
@@ -105,19 +110,34 @@ export default function Onboarding() {
 
              <div>
                 <label className="text-xs font-semibold text-muted-foreground ml-1">Account Password</label>
-                <input 
-                  type="password" 
-                  value={formData.password} onChange={e => update("password", e.target.value)}
-                  className="w-full mt-1 h-11 bg-background border border-border rounded-lg px-3 text-sm focus:border-primary transition-colors"
-                  placeholder="••••••••"
-                />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={formData.password} onChange={e => update("password", e.target.value)}
+                    className="w-full mt-1 h-11 bg-background border border-border rounded-lg px-3 pr-10 text-sm focus:border-primary transition-colors"
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-[18px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
              </div>
 
              <div>
                 <label className="text-xs font-semibold text-muted-foreground ml-1">Phone Number</label>
                 <div className="flex gap-2 mt-1">
-                   <input disabled value={formData.phone} className="flex-1 h-11 bg-background/50 border border-border rounded-lg px-3 text-sm text-muted-foreground" placeholder="Auto-verified" />
-                   <button onClick={generateMockPhone} className="h-11 px-4 bg-secondary text-secondary-foreground rounded-lg text-xs font-bold hover:bg-secondary/80 active:scale-95 transition-all">
+                   <input value={formData.phone} onChange={e => update("phone", e.target.value.replace(/[^0-9]/g, ''))} maxLength={10} className="flex-1 h-11 bg-background border border-border rounded-lg px-3 text-sm focus:border-primary transition-colors" placeholder="Enter 10-digit mobile" />
+                   <button type="button" onClick={() => {
+                     if (formData.phone.length === 10) {
+                       toast("Phone Verified ✓", { description: `+91 ${formData.phone}` });
+                     } else {
+                       toast.error("Enter a valid 10-digit number");
+                     }
+                   }} className="h-11 px-4 bg-secondary text-secondary-foreground rounded-lg text-xs font-bold hover:bg-secondary/80 active:scale-95 transition-all">
                      Verify
                    </button>
                 </div>
