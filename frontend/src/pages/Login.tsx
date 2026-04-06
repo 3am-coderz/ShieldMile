@@ -5,6 +5,7 @@ import { MapPin, ShieldHalf, LayoutDashboard, KeyRound, Eye, EyeOff } from "luci
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
+import { apiUrl } from "@/lib/api";
 import { saveWorkerData, type Platform } from "@/lib/shieldmile";
 import { toast } from "sonner";
 
@@ -85,7 +86,7 @@ export default function Login() {
 
       // Step 2: Also register session with FastAPI backend for CDI engine
       try {
-        const apiRes = await fetch("http://127.0.0.1:8000/api/login", {
+        const apiRes = await fetch(apiUrl("/api/login"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: workerData.id, password: "password123" })

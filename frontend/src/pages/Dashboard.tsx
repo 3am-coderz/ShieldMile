@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ShieldMileLogo } from "@/components/ShieldMileLogo";
 import { CDIGauge } from "@/components/CDIGauge";
 import { Button } from "@/components/ui/button";
+import { apiUrl } from "@/lib/api";
 import { loadWorkerData, calculateCDI, runFraudCheck, type CDIInputs, type CDIResult } from "@/lib/shieldmile";
 import { CloudRain, Wind, Thermometer, CloudFog, ShieldAlert, CheckCircle, AlertTriangle, MapPin, Smartphone, Activity, FileText, Zap, User, LogOut } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -39,7 +40,7 @@ export default function Dashboard() {
     if (!worker?.id) return;
     const fetchDashboard = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/dashboard/${worker.id}`);
+        const res = await fetch(apiUrl(`/dashboard/${worker.id}`));
         if (!res.ok) return;
         const data = await res.json();
         
@@ -79,13 +80,13 @@ export default function Dashboard() {
     // Inject logic to Python Oracle
     toast.info("Sending Disruption Signal to Cloud Oracle...");
     try {
-      await fetch(`http://127.0.0.1:8000/simulate/start_rain`, {
+      await fetch(apiUrl("/simulate/start_rain"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ worker_id: worker?.id, intensity: 55.0 })
       });
       // Force a tick immediately to evaluate
-      await fetch(`http://127.0.0.1:8000/simulate/tick`, { method: "POST" });
+      await fetch(apiUrl("/simulate/tick"), { method: "POST" });
     } catch (e) {
       toast.error("Failed to reach Python backend.");
     }
