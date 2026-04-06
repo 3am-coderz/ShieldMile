@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [spoofWeather, setSpoofWeather] = useState(false);
   const [triggerPandemic, setTriggerPandemic] = useState(false);
   const { location, requestLocation } = useGeolocation();
+  const backendWorkerId = worker?.backendId || worker?.id;
 
   useEffect(() => {
     const w = loadWorkerData();
@@ -37,10 +38,10 @@ export default function Dashboard() {
 
   // Backend sync loop
   useEffect(() => {
-    if (!worker?.id) return;
+    if (!backendWorkerId) return;
     const fetchDashboard = async () => {
       try {
-        const res = await fetch(apiUrl(`/dashboard/${worker.id}`));
+        const res = await fetch(apiUrl(`/dashboard/${backendWorkerId}`));
         if (!res.ok) return;
         const data = await res.json();
         
@@ -71,7 +72,7 @@ export default function Dashboard() {
     fetchDashboard();
     const inv = setInterval(fetchDashboard, 3000);
     return () => clearInterval(inv);
-  }, [worker?.id]);
+  }, [backendWorkerId]);
 
   const simulate = async () => {
     setSimulating(true);
@@ -83,7 +84,7 @@ export default function Dashboard() {
       await fetch(apiUrl("/simulate/start_rain"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ worker_id: worker?.id, intensity: 55.0 })
+        body: JSON.stringify({ worker_id: backendWorkerId, intensity: 55.0 })
       });
       // Force a tick immediately to evaluate
       await fetch(apiUrl("/simulate/tick"), { method: "POST" });

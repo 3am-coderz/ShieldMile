@@ -38,6 +38,8 @@ export default function Login() {
   const [activeZone, setActiveZone] = useState("Chennai (5 Hubs)");
   const [activeWorkers, setActiveWorkers] = useState("8,492 Protected");
 
+  const getBackendWorkerId = () => "demo-001";
+
   const handlePincodeSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (pincode.length < 4) {
@@ -86,10 +88,11 @@ export default function Login() {
 
       // Step 2: Also register session with FastAPI backend for CDI engine
       try {
+        const backendWorkerId = getBackendWorkerId();
         const apiRes = await fetch(apiUrl("/api/login"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: workerData.id, password: "password123" })
+          body: JSON.stringify({ username: backendWorkerId, password: "password123" })
         });
         if (apiRes.ok) {
           const apiData = await apiRes.json();
@@ -101,6 +104,7 @@ export default function Login() {
 
       saveWorkerData({
         id: workerData.id,
+        backendId: getBackendWorkerId(),
         name: workerData.name,
         phone: workerData.phone,
         partnerId: workerData.partner_id,
@@ -285,6 +289,7 @@ export default function Login() {
                   onClick={() => {
                     saveWorkerData({
                       id: "demo-001",
+                      backendId: "demo-001",
                       name: "Ramesh Kumar",
                       phone: "9876543210",
                       partnerId: "ZPT-49291",

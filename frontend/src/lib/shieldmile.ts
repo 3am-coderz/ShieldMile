@@ -205,6 +205,7 @@ export function runFraudCheck(claimsThisWeek: number = 0, triggerGpsSpoof: boole
 // ===== Worker Data (sessionStorage) =====
 export interface WorkerData {
   id?: string;
+  backendId?: string;
   name: string; phone: string; partnerId: string; platform: Platform;
   zone: Zone; weeklyEarnings: number; upiId: string;
   selectedTier?: Tier; ncbStreak: number;
