@@ -11,7 +11,7 @@
 
 ## 📌 One Line Description
 
-ShieldMile protects Chennai's Zepto & Blinkit delivery partners from income loss due to weather disruptions. Our AI-powered CDI engine auto-detects disruptions, passes fraud checks, and transfers payouts to UPI in 5 minutes — all for just ₹49–₹99/week.
+ShieldMile protects Chennai's Zepto & Blinkit delivery partners from income loss due to weather disruptions. Our AI-powered CDI engine auto-detects disruptions, passes fraud checks, and transfers payouts to UPI in 5 minutes — all for just ₹59–₹99/week.
 
 ---
 
